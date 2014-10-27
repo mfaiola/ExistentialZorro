@@ -268,10 +268,12 @@ namespace Mordekaiser
                 if (Items.CanUseItem(3157) && useR && rTarget != null && !MordekaiserHaveSlave)
                 {
                     R.CastOnUnit(rTarget);
+                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                     if (useW) { W.CastOnUnit(Player); }
                     Items.UseItem(3157);
                 }
                 else if (Items.CanUseItem(3157)) {
+                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                     if (useW) { W.CastOnUnit(Player); }
                     Items.UseItem(3157);
                 }
