@@ -60,7 +60,7 @@ namespace Mordekaiser
             SpellList.Add(R);
 
             /* [ Set Menu ] */
-            Config = new Menu(string.Format("mfaiola | {0}", ChampionName), ChampionName, true);
+            Config = new Menu(string.Format("xQx/mfaiola | {0}", ChampionName), ChampionName, true);
             Config.AddSubMenu(new Menu("Orbwalking", "Orbwalking"));
 
             var targetSelectorMenu = new Menu("Target Selector", "Target Selector");
@@ -261,24 +261,6 @@ namespace Mordekaiser
                     
             // Shut off auto attack via orbwalker so it doesnt interrupt any combos
             Orbwalker.SetAttacks(false);
-            
-            // Check to see if we should be in emergency mode
-            if (ObjectManager.Player.Health*100/ObjectManager.Player.MaxHealth < 15)
-            {
-                if (Items.CanUseItem(3090) && useR && rTarget != null && !MordekaiserHaveSlave)
-                {
-                    R.CastOnUnit(rTarget);
-                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
-                    if (useW) { W.CastOnUnit(Player); }
-                    Items.UseItem(3090);
-                }
-                else if (Items.CanUseItem(3090)) {
-                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
-                    if (useW) { W.CastOnUnit(Player); }
-                    Items.UseItem(3090);
-                }
-        
-            }
             
             // ----------------------------------------------------------------------------------------
             // First priority is to see if there is anyone in E range that can be insta killed
@@ -576,7 +558,7 @@ namespace Mordekaiser
         {
             Game.PrintChat(
                 String.Format(
-                    "<font color='#70DBDB'>~~mfaiola's </font> <font color='#FFFFFF'>{0}</font> <font color='#70DBDB'> Loaded!~~</font>",
+                    "<font color='#70DBDB'>xQx + mfaiola</font> <font color='#FFFFFF'>{0}</font> <font color='#70DBDB'>Loaded!</font>",
                     ChampionName));
         }
     }
