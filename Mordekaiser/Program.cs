@@ -262,6 +262,20 @@ namespace Mordekaiser
             // Shut off auto attack via orbwalker so it doesnt interrupt any combos
             Orbwalker.SetAttacks(false);
             
+            // Check to see if we should be in emergency mode
+            if (ObjectManager.Player.Health*100/ObjectManager.Player.MaxHealth < 15)
+            {
+                if (Items.CanUseItem(3128) && useR && rTarget != null && !MordekaiserHaveSlave)
+                {
+                    
+                    
+                }
+                else {
+                    
+                }
+                
+            }
+            
             // ----------------------------------------------------------------------------------------
             // First priority is to see if there is anyone in E range that can be insta killed
             if (useE && eTarget != null && eTarget.Health <= Player.GetSpellDamage(eTarget, SpellSlot.E))
@@ -558,7 +572,7 @@ namespace Mordekaiser
         {
             Game.PrintChat(
                 String.Format(
-                    "<font color='#70DBDB'>xQx + mfaiola</font> <font color='#FFFFFF'>{0}</font> <font color='#70DBDB'>Loaded!</font>",
+                    "<font color='#70DBDB'>~~mfaiola's </font> <font color='#FFFFFF'>{0}</font> <font color='#70DBDB'> Loaded!~~</font>",
                     ChampionName));
         }
     }
