@@ -265,13 +265,15 @@ namespace Mordekaiser
             // Check to see if we should be in emergency mode
             if (ObjectManager.Player.Health*100/ObjectManager.Player.MaxHealth < 15)
             {
-                if (Items.CanUseItem(3128) && useR && rTarget != null && !MordekaiserHaveSlave)
+                if (Items.CanUseItem(3157) && useR && rTarget != null && !MordekaiserHaveSlave)
                 {
-                    
-                    
+                    R.CastOnUnit(rTarget);
+                    if (useW) { W.CastOnUnit(Player); }
+                    Items.UseItem(3157);
                 }
-                else {
-                    
+                else if (Items.CanUseItem(3157)) {
+                    if (useW) { W.CastOnUnit(Player); }
+                    Items.UseItem(3157);
                 }
                 
             }
