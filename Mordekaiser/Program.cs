@@ -320,7 +320,7 @@ namespace Mordekaiser
             // -----------------------------------------------
             // ----------------------------------------------------------------------------------------
             // First priority is to see if there is anyone in E range that can be insta killed
-            if (useE && eTarget != null && eTarget.Health <= Player.GetSpellDamage(eTarget, SpellSlot.E))
+            if (useE && eTarget != null && eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E))
                 E.Cast(eTarget.Position);
             // See if DFG or BFT are useable
             if (Items.CanUseItem(3128) || Items.CanUseItem(3188))
