@@ -19,7 +19,7 @@ namespace Mordekaiser
 
         public static Items.Item Dfg = new Items.Item(3128, 700);
         public static Items.Item Bft = new Items.Item(3188, 700);
-        
+
         public static Menu Config;
         public static Menu MenuExtras;
         public static float SlaveDelay = 0;
@@ -52,7 +52,7 @@ namespace Mordekaiser
             SpellList.Add(W);
 
             E = new Spell(SpellSlot.E, 665);
-            E.SetSkillshot(0.25f, 15f*2*(float) Math.PI/180, 2000f, false, SkillshotType.SkillshotCone);
+            E.SetSkillshot(0.25f, 15f * 2 * (float)Math.PI / 180, 2000f, false, SkillshotType.SkillshotCone);
             SpellList.Add(E);
 
             R = new Spell(SpellSlot.R, 850);
@@ -163,7 +163,7 @@ namespace Mordekaiser
         {
             get { return Player.Spellbook.GetSpell(SpellSlot.R).Name == "mordekaisercotgguide"; }
         }
-        
+
         private static void MordekaiserHaveSlave2()
         {
             if (Player.Spellbook.GetSpell(SpellSlot.R).Name == "mordekaisercotgguide")
@@ -172,7 +172,7 @@ namespace Mordekaiser
                     SlaveTimer = Game.Time;
             }
         }
-        
+
         private static void Drawing_OnDraw(EventArgs args)
         {
             if (Config.Item("DrawDisable").GetValue<bool>())
@@ -189,48 +189,35 @@ namespace Mordekaiser
             }
 
             var drawSlaveRange = Config.Item("DrawSlaveRange").GetValue<Circle>();
-            
+
             if (MordekaiserHaveSlave)
             {
                 MordekaiserHaveSlave2();
-
-                if (drawSlaveRange.Active)
-                    Utility.DrawCircle(Player.Position, SlaveActivationRange, drawSlaveRange.Color, drawThickness, drawQuality);
-
-                if (!Config.Item("DrawSlavePos").GetValue<Circle>().Active) return;
-                var drawSlavePos = Config.Item("DrawSlavePos").GetValue<Circle>();    
 
                 var xMinion = ObjectManager.Get<Obj_AI_Minion>().Where(minion => Player.Distance(minion) < SlaveActivationRange && Player.IsAlly && !Player.IsDead);
                 var xEnemy = ObjectManager.Get<Obj_AI_Hero>().Where(enemy => enemy.IsEnemy);
 
                 var xList = from xM in xMinion
-                    join xE in xEnemy on new {pEquals1 = xM.BaseSkinName}
-                        equals new { pEquals1 = xE.BaseSkinName }
+                            join xE in xEnemy on new { pEquals1 = xM.BaseSkinName }
+                                equals new { pEquals1 = xE.BaseSkinName }
                             select new { xM.Position, xM.Name, xM.NetworkId, xM.BaseSkinName };
-
-                foreach (var xL in xList)
-                {
-                 //   Game.PrintChat(xL.BaseSkinName);
-                    Utility.DrawCircle(xL.Position, 70f, Color.White, drawThickness, drawQuality);
-                    Utility.DrawCircle(xL.Position, 75f, drawSlavePos.Color, drawThickness, drawQuality);
-                    Utility.DrawCircle(xL.Position, 80f, Color.White, drawThickness, drawQuality);
-                }
             }
+
         }
-        
+
         // Main game update function
         private static void Game_OnGameUpdate(EventArgs args)
         {
             // Nothing to do if the huekaiser is dead
             if (Player.IsDead) return;
-            
+
             // if we cant move yet we cant?
             if (!Orbwalking.CanMove(100)) return;
-            
+
             // Set movement and attacking via the orbwalker on in case of errors
             Orbwalker.SetAttack(true);
             Orbwalker.SetMovement(true);
-            
+
             // Run the correct function for whichever button is held down
             if (Config.Item("ComboActive").GetValue<KeyBind>().Active)
                 Combo();
@@ -240,12 +227,15 @@ namespace Mordekaiser
                 LaneClear();
             if (Config.Item("JungleFarmActive").GetValue<KeyBind>().Active)
                 JungleFarm();
+
         }
+
+
 
         // Main combo logic function
         private static void Combo()
         {
-            //initalize variables
+            // initalize variables
             var wTarget = SimpleTs.GetTarget(W.Range / 2, SimpleTs.DamageType.Magical);
             var eTarget = SimpleTs.GetTarget(E.Range, SimpleTs.DamageType.Magical);
             var rTarget = SimpleTs.GetTarget(R.Range, SimpleTs.DamageType.Magical);
@@ -254,20 +244,24 @@ namespace Mordekaiser
             var useW = Config.Item("ComboUseW").GetValue<bool>();
             var useE = Config.Item("ComboUseE").GetValue<bool>();
             var useR = Config.Item("ComboUseR").GetValue<bool>();
-            
+
             // Filter out people we shouldnt ult
             useR = (Config.Item("DontUlt" + rTarget.BaseSkinName) != null &&
                     Config.Item("DontUlt" + rTarget.BaseSkinName).GetValue<bool>() == false) && useR;
-                    
+
             // Shut off auto attack via orbwalker so it doesnt interrupt any combos
             Orbwalker.SetAttack(false);
 
-            // Check to see if we should be in emergency mode
+
+            // -----------------------------------------------
+            // ---- EMERGENCY MODE!!!!-----
+            // -----------------------------------------------
+            // Check to see if we should be in emergency mode 1
             if (ObjectManager.Player.Health * 100 / ObjectManager.Player.MaxHealth < 15)
             {
+                // Emergency combo where we have both zhoyna's and R ready
                 if (Items.CanUseItem(3090) && useR && rTarget != null && !MordekaiserHaveSlave)
                 {
-                    // Shut off movement via orbwalker so it doesnt interrupt any combos
                     Orbwalker.SetMovement(false);
                     R.CastOnUnit(rTarget);
                     if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
@@ -275,18 +269,18 @@ namespace Mordekaiser
                     Items.UseItem(3090);
                     Orbwalker.SetMovement(true);
                 }
+                // Emergency combo where we zhoyna's ready
                 else if (Items.CanUseItem(3090))
                 {
-                    // Shut off movement via orbwalker so it doesnt interrupt any combos
                     Orbwalker.SetMovement(false);
                     if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                     if (useW) { W.CastOnUnit(Player); }
                     Items.UseItem(3090);
                     Orbwalker.SetMovement(true);
                 }
+                // Emergency combo where we have both wooglets and R ready
                 else if (Items.CanUseItem(3157) && useR && rTarget != null && !MordekaiserHaveSlave)
                 {
-                    // Shut off movement via orbwalker so it doesnt interrupt any combos
                     Orbwalker.SetMovement(false);
                     R.CastOnUnit(rTarget);
                     if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
@@ -294,22 +288,36 @@ namespace Mordekaiser
                     Items.UseItem(3157);
                     Orbwalker.SetMovement(true);
                 }
+                // Emergency combo where we wooglets's ready
                 else if (Items.CanUseItem(3157))
                 {
-                    // Shut off movement via orbwalker so it doesnt interrupt any combos
                     Orbwalker.SetMovement(false);
                     if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                     if (useW) { W.CastOnUnit(Player); }
                     Items.UseItem(3157);
                     Orbwalker.SetMovement(true);
                 }
-                else {
+                // Emergency combo where we have nothing
+                else
+                {
                     if (useW) { W.CastOnUnit(Player); }
                     if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                 }
 
             }
-            
+            // Check to see if we should be in emergency mode 2
+            else if (ObjectManager.Player.Health * 100 / ObjectManager.Player.MaxHealth < 25)
+            {
+                if (useW) { W.CastOnUnit(Player); }
+            }            
+            // -----------------------------------------------
+            // -----------------------------------------------
+
+
+
+            // -----------------------------------------------
+            // ----  MAIN ATTACK LOGIC START
+            // -----------------------------------------------
             // ----------------------------------------------------------------------------------------
             // First priority is to see if there is anyone in E range that can be insta killed
             if (useE && eTarget != null && eTarget.Health <= Player.GetSpellDamage(eTarget, SpellSlot.E))
@@ -320,7 +328,7 @@ namespace Mordekaiser
                 // See if we had a DFG
                 if (useE && eTarget != null && Items.CanUseItem(3128))
                 {
-                    if (eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E)+Player.GetItemDamage(eTarget, Damage.DamageItems.Dfg)+(Player.GetSpellDamage(eTarget, SpellSlot.E)*0.20))
+                    if (eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E) + Player.GetItemDamage(eTarget, Damage.DamageItems.Dfg) + (Player.GetSpellDamage(eTarget, SpellSlot.E) * 0.15))
                     {
                         Items.UseItem(3128, eTarget);
                         E.Cast(eTarget.Position);
@@ -329,34 +337,35 @@ namespace Mordekaiser
                 // Or else we had a BFT
                 else if (useE && eTarget != null && Items.CanUseItem(3188))
                 {
-                    if (eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E)+Player.GetItemDamage(eTarget, Damage.DamageItems.BlackFireTorch)+(Player.GetSpellDamage(eTarget, SpellSlot.E)*0.20))
+                    if (eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E) + Player.GetItemDamage(eTarget, Damage.DamageItems.BlackFireTorch) + (Player.GetSpellDamage(eTarget, SpellSlot.E) * 0.15))
                     {
                         Items.UseItem(3188, eTarget);
                         E.Cast(eTarget.Position);
                     }
                 }
             }
-            
+            // ----------------------------------------------------------------------------------------
+
             // ----------------------------------------------------------------------------------------
             // Second priority is to see if there is anyone in R range that can be insta killed without any of the DOT
-            if (useR && rTarget != null && !MordekaiserHaveSlave && rTarget.Health < (Player.GetSpellDamage(rTarget, SpellSlot.R)/2))
+            if (useR && rTarget != null && !MordekaiserHaveSlave && rTarget.Health < (Player.GetSpellDamage(rTarget, SpellSlot.R) / 2))
                 R.CastOnUnit(rTarget);
             // See if DFG or BFT are useable
-            if (Items.CanUseItem(3128)||Items.CanUseItem(3188))
+            if (Items.CanUseItem(3128) || Items.CanUseItem(3188))
             {
                 // See if we had a DFG
                 if (Items.CanUseItem(3128))
                 {
                     if (useR && rTarget != null && !MordekaiserHaveSlave && Player.Distance(rTarget) < 695)
                     {
-                        if (rTarget.Health < (Player.GetSpellDamage(rTarget, SpellSlot.R)/2)+Player.GetItemDamage(rTarget, Damage.DamageItems.Dfg)+((Player.GetSpellDamage(rTarget, SpellSlot.R)/2)*0.20))
+                        if (rTarget.Health < (Player.GetSpellDamage(rTarget, SpellSlot.R) / 2) + Player.GetItemDamage(rTarget, Damage.DamageItems.Dfg) + ((Player.GetSpellDamage(rTarget, SpellSlot.R) / 2) * 0.15))
                         {
-                            if (Player.Distance(rTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready )
+                            if (Player.Distance(rTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready)
                                 Player.SummonerSpellbook.CastSpell(IgniteSlot, rTarget);
                             Items.UseItem(3128, rTarget);
                             R.CastOnUnit(rTarget);
                         }
-                        
+
                     }
                 }
                 // Or else we had a BFT
@@ -364,24 +373,25 @@ namespace Mordekaiser
                 {
                     if (useR && rTarget != null && !MordekaiserHaveSlave && Player.Distance(rTarget) < 695)
                     {
-                        if (rTarget.Health < (Player.GetSpellDamage(rTarget, SpellSlot.R)/2)+Player.GetItemDamage(rTarget, Damage.DamageItems.BlackFireTorch)+((Player.GetSpellDamage(rTarget, SpellSlot.R)/2)*0.20))
+                        if (rTarget.Health < (Player.GetSpellDamage(rTarget, SpellSlot.R) / 2) + Player.GetItemDamage(rTarget, Damage.DamageItems.BlackFireTorch) + ((Player.GetSpellDamage(rTarget, SpellSlot.R) / 2) * 0.15))
                         {
-                            if (Player.Distance(rTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready )
+                            if (Player.Distance(rTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready)
                                 Player.SummonerSpellbook.CastSpell(IgniteSlot, rTarget);
                             Items.UseItem(3188, rTarget);
                             R.CastOnUnit(rTarget);
                         }
-                        
+
                     }
                 }
             }
+            // ----------------------------------------------------------------------------------------
 
             // ----------------------------------------------------------------------------------------
             // Thrid priority is to see if there is anyone in E range that can be insta killed without any of the DOT using both E and R
-            if (useR && useE && eTarget != null && !MordekaiserHaveSlave && eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E)+(Player.GetSpellDamage(eTarget, SpellSlot.R)/2))
+            if (useR && useE && eTarget != null && !MordekaiserHaveSlave && eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E) + (Player.GetSpellDamage(eTarget, SpellSlot.R) / 2))
             {
-                if (Player.Distance(eTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready )
-                                Player.SummonerSpellbook.CastSpell(IgniteSlot, eTarget);
+                if (Player.Distance(eTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready)
+                    Player.SummonerSpellbook.CastSpell(IgniteSlot, eTarget);
                 E.Cast(eTarget.Position);
                 R.CastOnUnit(eTarget);
             }
@@ -391,10 +401,10 @@ namespace Mordekaiser
                 // See if we had a DFG
                 if (useE && useR && eTarget != null && Items.CanUseItem(3128))
                 {
-                    if (eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E)+Player.GetItemDamage(eTarget, Damage.DamageItems.Dfg)+(Player.GetSpellDamage(eTarget, SpellSlot.E)*0.20)+(Player.GetSpellDamage(rTarget, SpellSlot.R)/2)+((Player.GetSpellDamage(rTarget, SpellSlot.R)/2)*0.20))
+                    if (eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E) + Player.GetItemDamage(eTarget, Damage.DamageItems.Dfg) + (Player.GetSpellDamage(eTarget, SpellSlot.E) * 0.15) + (Player.GetSpellDamage(rTarget, SpellSlot.R) / 2) + ((Player.GetSpellDamage(rTarget, SpellSlot.R) / 2) * 0.15))
                     {
-                        if (Player.Distance(eTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready )
-                                Player.SummonerSpellbook.CastSpell(IgniteSlot, eTarget);
+                        if (Player.Distance(eTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready)
+                            Player.SummonerSpellbook.CastSpell(IgniteSlot, eTarget);
                         Items.UseItem(3128, eTarget);
                         E.Cast(eTarget.Position);
                         R.CastOnUnit(eTarget);
@@ -403,32 +413,33 @@ namespace Mordekaiser
                 // Or else we had a BFT
                 else if (useE && useR && eTarget != null && Items.CanUseItem(3188))
                 {
-                    if (eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E)+Player.GetItemDamage(eTarget, Damage.DamageItems.BlackFireTorch)+(Player.GetSpellDamage(eTarget, SpellSlot.E)*0.20)+(Player.GetSpellDamage(rTarget, SpellSlot.R)/2)+((Player.GetSpellDamage(rTarget, SpellSlot.R)/2)*0.20))
+                    if (eTarget.Health < Player.GetSpellDamage(eTarget, SpellSlot.E) + Player.GetItemDamage(eTarget, Damage.DamageItems.BlackFireTorch) + (Player.GetSpellDamage(eTarget, SpellSlot.E) * 0.15) + (Player.GetSpellDamage(rTarget, SpellSlot.R) / 2) + ((Player.GetSpellDamage(rTarget, SpellSlot.R) / 2) * 0.15))
                     {
-                        if (Player.Distance(eTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready )
-                                Player.SummonerSpellbook.CastSpell(IgniteSlot, eTarget);
+                        if (Player.Distance(eTarget) < 599 && IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready)
+                            Player.SummonerSpellbook.CastSpell(IgniteSlot, eTarget);
                         Items.UseItem(3188, eTarget);
                         E.Cast(eTarget.Position);
                         R.CastOnUnit(eTarget);
                     }
                 }
             }
-            
- 
-             // Next priority is to see if Q is up and if we have a target in autoattack range
+            // ----------------------------------------------------------------------------------------
+
+            // ----------------------------------------------------------------------------------------
+            // Next priority is to see if Q is up and if we have a target in autoattack range
             if (useQ && Q.IsReady() && Player.Distance(wTarget) < Orbwalking.GetRealAutoAttackRange(ObjectManager.Player))
             {
                 // Shut off movement via orbwalker so it doesnt interrupt any combos
                 Orbwalker.SetMovement(false);
                 // See if we can Q + E them for a kill using at least 1/3 of Q damage
-                if (useE && E.IsReady() && wTarget.Health < (Player.GetSpellDamage(wTarget, SpellSlot.Q)/3)+Player.GetSpellDamage(wTarget, SpellSlot.E))
+                if (useE && E.IsReady() && wTarget.Health < (Player.GetSpellDamage(wTarget, SpellSlot.Q) / 3) + Player.GetSpellDamage(wTarget, SpellSlot.E))
                 {
                     Q.Cast();
                     Player.IssueOrder(GameObjectOrder.AttackUnit, wTarget);
                     E.Cast(wTarget.Position);
                 }
                 // See if we can Q + E + R them for a kill using at least 1/3 of Q damage
-                else if (useE && E.IsReady() && useR && R.IsReady() && !MordekaiserHaveSlave && wTarget != null && wTarget.Health < (Player.GetSpellDamage(wTarget, SpellSlot.Q)/3)+Player.GetSpellDamage(wTarget, SpellSlot.E)+(Player.GetSpellDamage(wTarget, SpellSlot.R)/2))
+                else if (useE && E.IsReady() && useR && R.IsReady() && !MordekaiserHaveSlave && wTarget != null && wTarget.Health < (Player.GetSpellDamage(wTarget, SpellSlot.Q) / 3) + Player.GetSpellDamage(wTarget, SpellSlot.E) + (Player.GetSpellDamage(wTarget, SpellSlot.R) / 2))
                 {
                     Q.Cast();
                     Player.IssueOrder(GameObjectOrder.AttackUnit, wTarget);
@@ -437,29 +448,32 @@ namespace Mordekaiser
 
                 }
                 // Couldn't combo anyone so we just use Q for dps
-                else if (wTarget != null) {
+                else if (wTarget != null)
+                {
                     Q.Cast();
                     Player.IssueOrder(GameObjectOrder.AttackUnit, wTarget);
                 }
                 // Turn movement via orbwalker since we are done with combos
                 Orbwalker.SetMovement(true);
             }
-            
+            // ----------------------------------------------------------------------------------------
+
+            // -----------------------------------------------
             // Couldn't combo anyone so we just use E for dps
             if (useE && eTarget != null)
                 E.Cast(eTarget.Position);
-            
+
             // Use W is we have an enemy player in metal shard range
             if (useW && wTarget != null && Player.Distance(wTarget) < WDamageRange)
                 W.CastOnUnit(Player);
-                
+
             // Turn on autoattack via orbwalker since we are done casting spells
             Orbwalker.SetAttack(true);
             
             // Update the slave delay counter
             if (MordekaiserHaveSlave && Environment.TickCount >= SlaveDelay)
                 SlaveDelay = Environment.TickCount + 1000;
-            
+
             // Issue the attack command for our ghost if hes up and useable
             if (MordekaiserHaveSlave && Environment.TickCount >= SlaveDelay)
             {
@@ -469,6 +483,10 @@ namespace Mordekaiser
                     R.Cast(rGhostArea);
                 }
             }
+            // ----------------------------------------------------------------------------------------
+            // -----------------------------------------------
+            // ----  MAIN ATTACK LOGIC END
+            // -----------------------------------------------
         }
 
         private static void Harass()
@@ -501,9 +519,9 @@ namespace Mordekaiser
                 var minionsQ = MinionManager.GetMinions(Player.ServerPosition,
                     Orbwalking.GetRealAutoAttackRange(ObjectManager.Player), MinionTypes.All, MinionTeam.NotAlly);
                 foreach (var vMinion in from vMinion in minionsQ
-                    let vMinionEDamage = Player.GetSpellDamage(vMinion, SpellSlot.Q)
-                    //where vMinion.Health <= vMinionEDamage && vMinion.Health > Player.GetAutoAttackDamage(vMinion)
-                    select vMinion) 
+                                        let vMinionEDamage = Player.GetSpellDamage(vMinion, SpellSlot.Q)
+                                        //where vMinion.Health <= vMinionEDamage && vMinion.Health > Player.GetAutoAttackDamage(vMinion)
+                                        select vMinion)
                 {
                     Q.Cast(vMinion);
                 }
@@ -534,7 +552,7 @@ namespace Mordekaiser
             var useW = Config.Item("JungleFarmUseW").GetValue<bool>();
             var useE = Config.Item("JungleFarmUseE").GetValue<bool>();
 
-            var mobs = MinionManager.GetMinions(ObjectManager.Player.ServerPosition, W.Range /2 , MinionTypes.All,
+            var mobs = MinionManager.GetMinions(ObjectManager.Player.ServerPosition, W.Range / 2, MinionTypes.All,
                 MinionTeam.Neutral, MinionOrderTypes.MaxHealth);
 
             if (mobs.Count <= 0) return;
@@ -561,14 +579,14 @@ namespace Mordekaiser
         {
             get
             {
-                var qDamageVisitors = new float[] {80, 110, 140, 170, 200};
-                var qDamageAlone = new float[] {132, 181, 230, 280, 330};
+                var qDamageVisitors = new float[] { 80, 110, 140, 170, 200 };
+                var qDamageAlone = new float[] { 132, 181, 230, 280, 330 };
 
                 var qTarget = SimpleTs.GetTarget(600, SimpleTs.DamageType.Magical);
 
                 var fxQDamage = TargetAlone(qTarget)
-                    ? qDamageAlone[Q.Level] + Player.BaseAttackDamage*1.65 + Player.BaseAbilityDamage*.66
-                    : qDamageVisitors[Q.Level] + Player.BaseAttackDamage + Player.BaseAbilityDamage*.40;
+                    ? qDamageAlone[Q.Level] + Player.BaseAttackDamage * 1.65 + Player.BaseAbilityDamage * .66
+                    : qDamageVisitors[Q.Level] + Player.BaseAttackDamage + Player.BaseAbilityDamage * .40;
                 return fxQDamage;
             }
         }
@@ -590,7 +608,7 @@ namespace Mordekaiser
                 fComboDamage += Player.GetSpellDamage(vTarget, SpellSlot.R);
 
             if (IgniteSlot != SpellSlot.Unknown && Player.SummonerSpellbook.CanUseSpell(IgniteSlot) == SpellState.Ready &&
-                Player.Distance(vTarget) < R.Range) 
+                Player.Distance(vTarget) < R.Range)
                 fComboDamage += Player.GetSummonerSpellDamage(vTarget, Damage.SummonerSpell.Ignite);
 
             if (Items.CanUseItem(3128) && Player.Distance(vTarget) < R.Range)
@@ -604,10 +622,7 @@ namespace Mordekaiser
 
         private static void WelcomeMessage()
         {
-            Game.PrintChat(
-                String.Format(
-                    "<font color='#70DBDB'faiola's custom</font> <font color='#FFFFFF'>{0}</font> <font color='#70DBDB'>Loaded!</font>",
-                    ChampionName));
+            Game.PrintChat(String.Format("Faiolas Custom Mordekaiser Loaded!!"));
         }
     }
 }
