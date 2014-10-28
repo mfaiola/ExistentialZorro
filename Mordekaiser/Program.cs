@@ -267,29 +267,45 @@ namespace Mordekaiser
             {
                 if (Items.CanUseItem(3090) && useR && rTarget != null && !MordekaiserHaveSlave)
                 {
+                    // Shut off movement via orbwalker so it doesnt interrupt any combos
+                    Orbwalker.SetMovement(false);
                     R.CastOnUnit(rTarget);
                     if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                     if (useW) { W.CastOnUnit(Player); }
                     Items.UseItem(3090);
+                    Orbwalker.SetMovement(true);
                 }
                 else if (Items.CanUseItem(3090))
                 {
+                    // Shut off movement via orbwalker so it doesnt interrupt any combos
+                    Orbwalker.SetMovement(false);
                     if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                     if (useW) { W.CastOnUnit(Player); }
                     Items.UseItem(3090);
+                    Orbwalker.SetMovement(true);
                 }
                 else if (Items.CanUseItem(3157) && useR && rTarget != null && !MordekaiserHaveSlave)
                 {
+                    // Shut off movement via orbwalker so it doesnt interrupt any combos
+                    Orbwalker.SetMovement(false);
                     R.CastOnUnit(rTarget);
                     if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                     if (useW) { W.CastOnUnit(Player); }
                     Items.UseItem(3157);
+                    Orbwalker.SetMovement(true);
                 }
                 else if (Items.CanUseItem(3157))
                 {
+                    // Shut off movement via orbwalker so it doesnt interrupt any combos
+                    Orbwalker.SetMovement(false);
                     if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                     if (useW) { W.CastOnUnit(Player); }
                     Items.UseItem(3157);
+                    Orbwalker.SetMovement(true);
+                }
+                else {
+                    if (useW) { W.CastOnUnit(Player); }
+                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
                 }
 
             }
