@@ -60,7 +60,7 @@ namespace Mordekaiser
             SpellList.Add(R);
 
             /* [ Set Menu ] */
-            Config = new Menu(string.Format("xQx/mfaiola | {0}", ChampionName), ChampionName, true);
+            Config = new Menu(string.Format("{0}", ChampionName), ChampionName, true);
             Config.AddSubMenu(new Menu("Orbwalking", "Orbwalking"));
 
             var targetSelectorMenu = new Menu("Target Selector", "Target Selector");
