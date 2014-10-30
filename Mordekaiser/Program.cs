@@ -34,6 +34,16 @@ namespace Mordekaiser
         private static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
+            CustomEvents.Unit.OnLevelUp += OnLevelUp;
+        }
+
+        private static void OnLevelUp(Obj_AI_Base sender, CustomEvents.Unit.OnLevelUpEventArgs args)
+        {
+            if (!sender.IsMe)
+                return;
+
+            ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.R);
+            ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.E);
         }
 
         private static void Game_OnGameLoad(EventArgs args)
@@ -60,7 +70,7 @@ namespace Mordekaiser
             SpellList.Add(R);
 
             /* [ Set Menu ] */
-            Config = new Menu(string.Format("{0}", ChampionName), ChampionName, true);
+            Config = new Menu(string.Format("+{0}+", ChampionName), ChampionName, true);
             Config.AddSubMenu(new Menu("Orbwalking", "Orbwalking"));
 
             var targetSelectorMenu = new Menu("Target Selector", "Target Selector");
@@ -76,7 +86,7 @@ namespace Mordekaiser
             Config.SubMenu("Combo").AddItem(new MenuItem("ComboUseE", "Use E").SetValue(true));
             Config.SubMenu("Combo").AddItem(new MenuItem("ComboUseR", "Use R").SetValue(true));
 
-            Config.SubMenu("Combo").AddSubMenu(new Menu("Don't Use Ult On", "DontUlt"));
+            Config.SubMenu("Combo").AddSubMenu(new Menu("Don't Use Ult On ->", "DontUlt"));
             foreach (var enemy in ObjectManager.Get<Obj_AI_Hero>().Where(enemy => enemy.Team != Player.Team))
             {
                 Config.SubMenu("Combo")
@@ -119,12 +129,6 @@ namespace Mordekaiser
                         KeyBindType.Press)));
 
 
-            /* [ Extras ] */
-            MenuExtras = new Menu("Extras", "Extras");
-            MenuExtras.AddItem(new MenuItem("ShieldSelf", "Sheild Self").SetValue(true));
-            MenuExtras.AddItem(new MenuItem("ShieldAlly", "Sheild Ally").SetValue(false));
-            Config.AddSubMenu(MenuExtras);
-
             /* [ Drawing ] */
             Config.AddSubMenu(new Menu("Drawings", "Drawings"));
             Config.SubMenu("Drawings").AddItem(new MenuItem("DrawW", "W Available Range").SetValue(new Circle(true, Color.Pink)));
@@ -133,23 +137,10 @@ namespace Mordekaiser
             Config.SubMenu("Drawings").AddItem(new MenuItem("DrawR", "R Range").SetValue(new Circle(false, Color.Pink)));
             Config.SubMenu("Drawings").AddItem(new MenuItem("DrawEmpty", ""));
             Config.SubMenu("Drawings").AddItem(new MenuItem("DrawAloneEnemy", "Q Alone Target").SetValue(new Circle(true, Color.Pink)));
-            Config.SubMenu("Drawings").AddItem(new MenuItem("DrawSlavePos", "Ult Slave Pos.").SetValue(new Circle(false, Color.Pink)));
-            Config.SubMenu("Drawings").AddItem(new MenuItem("DrawSlaveRange", "Ult Slave Range").SetValue(new Circle(false, Color.Pink)));
 
             Config.SubMenu("Drawings").AddItem(new MenuItem("DrawEmpty", ""));
             Config.SubMenu("Drawings").AddItem(new MenuItem("DrawDisable", "Disable All").SetValue(false));
             Config.SubMenu("Drawings").AddItem(new MenuItem("DrawEmpty", ""));
-
-            /* [ Damage After Combo ] */
-            var dmgAfterComboItem = new MenuItem("DamageAfterCombo", "Damage After Combo").SetValue(true);
-            Config.SubMenu("Drawings").AddItem(dmgAfterComboItem);
-
-            Utility.HpBarDamageIndicator.DamageToUnit = GetComboDamage;
-            Utility.HpBarDamageIndicator.Enabled = dmgAfterComboItem.GetValue<bool>();
-            dmgAfterComboItem.ValueChanged += delegate(object sender, OnValueChangeEventArgs eventArgs)
-            {
-                Utility.HpBarDamageIndicator.Enabled = eventArgs.GetNewValue<bool>();
-            };
 
             Config.AddToMainMenu();
 
@@ -157,6 +148,7 @@ namespace Mordekaiser
             Drawing.OnDraw += Drawing_OnDraw;
 
             WelcomeMessage();
+
         }
 
         private static bool MordekaiserHaveSlave
@@ -175,6 +167,11 @@ namespace Mordekaiser
 
         private static void Drawing_OnDraw(EventArgs args)
         {
+            if (MordekaiserHaveSlave)
+            {
+                MordekaiserHaveSlave2();
+            }
+
             if (Config.Item("DrawDisable").GetValue<bool>())
                 return;
 
@@ -187,22 +184,6 @@ namespace Mordekaiser
                 if (menuItem.Active && spell.Level > 0)
                     Utility.DrawCircle(Player.Position, spell.Range, menuItem.Color, drawThickness, drawQuality);
             }
-
-            var drawSlaveRange = Config.Item("DrawSlaveRange").GetValue<Circle>();
-
-            if (MordekaiserHaveSlave)
-            {
-                MordekaiserHaveSlave2();
-
-                var xMinion = ObjectManager.Get<Obj_AI_Minion>().Where(minion => Player.Distance(minion) < SlaveActivationRange && Player.IsAlly && !Player.IsDead);
-                var xEnemy = ObjectManager.Get<Obj_AI_Hero>().Where(enemy => enemy.IsEnemy);
-
-                var xList = from xM in xMinion
-                            join xE in xEnemy on new { pEquals1 = xM.BaseSkinName }
-                                equals new { pEquals1 = xE.BaseSkinName }
-                            select new { xM.Position, xM.Name, xM.NetworkId, xM.BaseSkinName };
-            }
-
         }
 
         // Main game update function
@@ -218,15 +199,69 @@ namespace Mordekaiser
             Orbwalker.SetAttack(true);
             Orbwalker.SetMovement(true);
 
+            // -----------------------------------------------
+            // ---- EMERGENCY MODE!!!!-----
+            // -----------------------------------------------
+            // Check to see if we should be in emergency mode 1
+            if (ObjectManager.Player.Health * 100 / ObjectManager.Player.MaxHealth < 15)
+            {
+                var useW = Config.Item("ComboUseW").GetValue<bool>();
+                var useR = Config.Item("ComboUseR").GetValue<bool>();
+                var rTarget = SimpleTs.GetTarget(R.Range, SimpleTs.DamageType.Magical);
+
+                // Use a red potion if we can
+                if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
+
+                // Check if we can use our R to save us
+                if (useR && rTarget != null && !MordekaiserHaveSlave)
+                {
+                    Orbwalker.SetMovement(false);
+                    R.CastOnUnit(rTarget);
+                    if (Items.CanUseItem(3090)) { Items.UseItem(3090); }
+                    else if (Items.CanUseItem(3157)) { Items.UseItem(3157); }
+                    Orbwalker.SetMovement(true);
+                }
+                // Save attempt without the R spell
+                else
+                {
+                    Orbwalker.SetMovement(false);
+                    if (Items.CanUseItem(3090)) { Items.UseItem(3090); }
+                    else if (Items.CanUseItem(3157)) { Items.UseItem(3157); }
+                    Orbwalker.SetMovement(true);
+                }
+                
+            }
+            // Check to see if we should be in emergency mode 2
+            else if (ObjectManager.Player.Health * 100 / ObjectManager.Player.MaxHealth < 25)
+            {
+                // Check for a W target and usability
+                var useW = Config.Item("ComboUseW").GetValue<bool>();
+                var wTarget = SimpleTs.GetTarget(W.Range / 2, SimpleTs.DamageType.Magical);
+                // Use W is we have an enemy player in metal shard range
+                if (useW && wTarget != null && Player.Distance(wTarget) < WDamageRange)
+                    W.CastOnUnit(Player);
+                if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
+            }
+            // -----------------------------------------------
+            // -----------------------------------------------
+
             // Run the correct function for whichever button is held down
             if (Config.Item("ComboActive").GetValue<KeyBind>().Active)
                 Combo();
-            if (Config.Item("HarassActive").GetValue<KeyBind>().Active || Config.Item("HarassActiveT").GetValue<KeyBind>().Active)
+            else if (Config.Item("HarassActive").GetValue<KeyBind>().Active || Config.Item("HarassActiveT").GetValue<KeyBind>().Active)
                 Harass();
-            if (Config.Item("LaneClearActive").GetValue<KeyBind>().Active)
+            else if (Config.Item("LaneClearActive").GetValue<KeyBind>().Active)
                 LaneClear();
-            if (Config.Item("JungleFarmActive").GetValue<KeyBind>().Active)
+            else if (Config.Item("JungleFarmActive").GetValue<KeyBind>().Active)
                 JungleFarm();
+
+            // Auto Slave Control
+            var rGhostArea = SimpleTs.GetTarget(2200f, SimpleTs.DamageType.Magical);
+            if (MordekaiserHaveSlave && rGhostArea != null && Environment.TickCount >= SlaveDelay)
+            {
+                R.Cast(rGhostArea);
+                SlaveDelay = Environment.TickCount + 1000;
+            }
 
         }
 
@@ -239,7 +274,6 @@ namespace Mordekaiser
             var wTarget = SimpleTs.GetTarget(W.Range / 2, SimpleTs.DamageType.Magical);
             var eTarget = SimpleTs.GetTarget(E.Range, SimpleTs.DamageType.Magical);
             var rTarget = SimpleTs.GetTarget(R.Range, SimpleTs.DamageType.Magical);
-            var rGhostArea = SimpleTs.GetTarget(2000f, SimpleTs.DamageType.Magical);
             var useQ = Config.Item("ComboUseQ").GetValue<bool>();
             var useW = Config.Item("ComboUseW").GetValue<bool>();
             var useE = Config.Item("ComboUseE").GetValue<bool>();
@@ -251,68 +285,6 @@ namespace Mordekaiser
 
             // Shut off auto attack via orbwalker so it doesnt interrupt any combos
             Orbwalker.SetAttack(false);
-
-
-            // -----------------------------------------------
-            // ---- EMERGENCY MODE!!!!-----
-            // -----------------------------------------------
-            // Check to see if we should be in emergency mode 1
-            if (ObjectManager.Player.Health * 100 / ObjectManager.Player.MaxHealth < 15)
-            {
-                // Emergency combo where we have both zhoyna's and R ready
-                if (Items.CanUseItem(3090) && useR && rTarget != null && !MordekaiserHaveSlave)
-                {
-                    Orbwalker.SetMovement(false);
-                    R.CastOnUnit(rTarget);
-                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
-                    if (useW) { W.CastOnUnit(Player); }
-                    Items.UseItem(3090);
-                    Orbwalker.SetMovement(true);
-                }
-                // Emergency combo where we zhoyna's ready
-                else if (Items.CanUseItem(3090))
-                {
-                    Orbwalker.SetMovement(false);
-                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
-                    if (useW) { W.CastOnUnit(Player); }
-                    Items.UseItem(3090);
-                    Orbwalker.SetMovement(true);
-                }
-                // Emergency combo where we have both wooglets and R ready
-                else if (Items.CanUseItem(3157) && useR && rTarget != null && !MordekaiserHaveSlave)
-                {
-                    Orbwalker.SetMovement(false);
-                    R.CastOnUnit(rTarget);
-                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
-                    if (useW) { W.CastOnUnit(Player); }
-                    Items.UseItem(3157);
-                    Orbwalker.SetMovement(true);
-                }
-                // Emergency combo where we wooglets's ready
-                else if (Items.CanUseItem(3157))
-                {
-                    Orbwalker.SetMovement(false);
-                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
-                    if (useW) { W.CastOnUnit(Player); }
-                    Items.UseItem(3157);
-                    Orbwalker.SetMovement(true);
-                }
-                // Emergency combo where we have nothing
-                else
-                {
-                    if (useW) { W.CastOnUnit(Player); }
-                    if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
-                }
-
-            }
-            // Check to see if we should be in emergency mode 2
-            else if (ObjectManager.Player.Health * 100 / ObjectManager.Player.MaxHealth < 25)
-            {
-                if (useW) { W.CastOnUnit(Player); }
-            }            
-            // -----------------------------------------------
-            // -----------------------------------------------
-
 
 
             // -----------------------------------------------
@@ -470,19 +442,7 @@ namespace Mordekaiser
             // Turn on autoattack via orbwalker since we are done casting spells
             Orbwalker.SetAttack(true);
             
-            // Update the slave delay counter
-            if (MordekaiserHaveSlave && Environment.TickCount >= SlaveDelay)
-                SlaveDelay = Environment.TickCount + 1000;
-
-            // Issue the attack command for our ghost if hes up and useable
-            if (MordekaiserHaveSlave && Environment.TickCount >= SlaveDelay)
-            {
-                // Going to add more later
-                if (rGhostArea != null)
-                {
-                    R.Cast(rGhostArea);
-                }
-            }
+            
             // ----------------------------------------------------------------------------------------
             // -----------------------------------------------
             // ----  MAIN ATTACK LOGIC END
@@ -507,6 +467,10 @@ namespace Mordekaiser
             if (useE && eTarget != null)
                 E.Cast(eTarget.Position);
         }
+
+
+
+
 
         private static void LaneClear()
         {
@@ -546,6 +510,7 @@ namespace Mordekaiser
             }
         }
 
+
         private static void JungleFarm()
         {
             var useQ = Config.Item("JungleFarmUseQ").GetValue<bool>();
@@ -567,6 +532,7 @@ namespace Mordekaiser
             if (useE && E.IsReady())
                 E.Cast(mob.Position);
         }
+
         private static bool TargetAlone(Obj_AI_Hero vTarget)
         {
             var objects =
@@ -622,7 +588,9 @@ namespace Mordekaiser
 
         private static void WelcomeMessage()
         {
+            Game.PrintChat(String.Format("-----------------------------------"));
             Game.PrintChat(String.Format("Faiolas Custom Mordekaiser Loaded!!"));
+            Game.PrintChat(String.Format("-----------------------------------"));
         }
     }
 }
