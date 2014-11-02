@@ -1,9 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
+using SharpDX;
 using LeagueSharp;
 using LeagueSharp.Common;
 using Color = System.Drawing.Color;
+
 
 namespace Mordekaiser
 {
@@ -31,6 +34,15 @@ namespace Mordekaiser
         private const float WDamageRange = 270f;
         private const float SlaveActivationRange = 2200f;
 
+        private const int MaxMinionDistance = 1000;
+        private static List<Obj_AI_Minion> killableMinionsE = new List<Obj_AI_Minion>();
+        private static List<Obj_AI_Minion> killableMinionsQ = new List<Obj_AI_Minion>();
+        private static List<Obj_AI_Minion> killableMinionsAA = new List<Obj_AI_Minion>();
+        private static List<Vector2> killableMinionsEvector = new List<Vector2>();
+
+
+
+
         private static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
@@ -41,10 +53,49 @@ namespace Mordekaiser
         {
             if (!sender.IsMe)
                 return;
+            var level = ObjectManager.Player.Level;
+            level += 1;
 
-            ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.R);
-            ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.E);
+            Game.PrintChat("LEVEL:");
+            Game.PrintChat(level.ToString());
+            
+            if (level == 2)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.Q);
+            else if (level == 3)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.E);
+            else if (level == 4)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.W);
+            else if (level == 5)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.E);
+            else if (level == 6)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.R);
+            else if (level == 7)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.E);
+            else if (level == 8)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.Q);
+            else if (level == 9)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.E);
+            else if (level == 10)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.Q);
+            else if (level == 11)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.R);
+            else if (level == 12)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.Q);
+            else if (level == 13)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.Q);
+            else if (level == 14)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.W);
+            else if (level == 15)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.W);
+            else if (level == 16)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.R);
+            else if (level == 17)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.W);
+            else if (level == 18)
+                ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.W);
+
         }
+
 
         private static void Game_OnGameLoad(EventArgs args)
         {
@@ -147,8 +198,13 @@ namespace Mordekaiser
             Game.OnGameUpdate += Game_OnGameUpdate;
             Drawing.OnDraw += Drawing_OnDraw;
 
+
+
             WelcomeMessage();
 
+            ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.E);
+            ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.Q);
+            ObjectManager.Player.Spellbook.LevelUpSpell(SpellSlot.W);
         }
 
         private static bool MordekaiserHaveSlave
@@ -175,7 +231,29 @@ namespace Mordekaiser
             if (Config.Item("DrawDisable").GetValue<bool>())
                 return;
 
-            var drawThickness = 3;//Config.Item("DrawThickness" ).GetValue<Slider>().Value;
+            // Draw circles for minions
+            try
+            {
+                foreach (Obj_AI_Minion minion in killableMinionsE)
+                {
+                    Utility.DrawCircle(minion.Position, minion.BoundingRadius + 40, Color.Red, 3, 5);
+                }
+                foreach (Obj_AI_Minion minion in killableMinionsQ)
+                {
+                    Utility.DrawCircle(minion.Position, minion.BoundingRadius + 30, Color.Yellow, 3, 5);
+                }
+                foreach (Obj_AI_Minion minion in killableMinionsAA)
+                {
+                    Utility.DrawCircle(minion.Position, minion.BoundingRadius + 20, Color.Gray, 3, 5);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+
+
+            var drawThickness = 2;//Config.Item("DrawThickness" ).GetValue<Slider>().Value;
             var drawQuality = 15;//Config.Item("DrawQuality").GetValue<Slider>().Value;
 
             foreach (var spell in SpellList.Where(spell => spell != Q && spell != W))
@@ -185,6 +263,68 @@ namespace Mordekaiser
                     Utility.DrawCircle(Player.Position, spell.Range, menuItem.Color, drawThickness, drawQuality);
             }
         }
+
+        internal enum PotionType
+        {
+            Health,
+            Mana
+        };
+
+        internal class Potion
+        {
+            public string Name { get; set; }
+            public int MinCharges { get; set; }
+            public ItemId ItemId { get; set; }
+            public int Priority { get; set; }
+            public List<PotionType> TypeList { get; set; }
+        }
+
+        private static List<Potion> _potions = new List<Potion>
+        {
+            new Potion
+            {
+                Name = "ItemCrystalFlask",
+                MinCharges = 1,
+                ItemId = (ItemId) 2041,
+                Priority = 1,
+                TypeList = new List<PotionType> {PotionType.Health, PotionType.Mana}
+            },
+            new Potion
+            {
+                Name = "RegenerationPotion",
+                MinCharges = 0,
+                ItemId = (ItemId) 2003,
+                Priority = 2,
+                TypeList = new List<PotionType> {PotionType.Health}
+            },
+            new Potion
+            {
+                Name = "FlaskOfCrystalWater",
+                MinCharges = 0,
+                ItemId = (ItemId) 2004,
+                Priority = 3,
+                TypeList = new List<PotionType> {PotionType.Mana}
+            },
+            new Potion
+            {
+                Name = "ItemMiniRegenPotion",
+                MinCharges = 0,
+                ItemId = (ItemId) 2010,
+                Priority = 4,
+                TypeList = new List<PotionType> {PotionType.Health, PotionType.Mana}
+            }
+        };
+
+        private static bool IsBuffActive(PotionType type)
+        {
+            return (from potion in _potions
+                    where potion.TypeList.Contains(type)
+                    from buff in ObjectManager.Player.Buffs
+                    where buff.Name == potion.Name && buff.IsActive
+                    select potion).Any();
+        }
+
+
 
         // Main game update function
         private static void Game_OnGameUpdate(EventArgs args)
@@ -199,6 +339,7 @@ namespace Mordekaiser
             Orbwalker.SetAttack(true);
             Orbwalker.SetMovement(true);
 
+
             // -----------------------------------------------
             // ---- EMERGENCY MODE!!!!-----
             // -----------------------------------------------
@@ -210,7 +351,7 @@ namespace Mordekaiser
                 var rTarget = SimpleTs.GetTarget(R.Range, SimpleTs.DamageType.Magical);
 
                 // Use a red potion if we can
-                if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
+                if (Items.CanUseItem(2003) && !IsBuffActive(PotionType.Health)) { Items.UseItem(2003); }
 
                 // Check if we can use our R to save us
                 if (useR && rTarget != null && !MordekaiserHaveSlave)
@@ -240,10 +381,36 @@ namespace Mordekaiser
                 // Use W is we have an enemy player in metal shard range
                 if (useW && wTarget != null && Player.Distance(wTarget) < WDamageRange)
                     W.CastOnUnit(Player);
-                if (Items.CanUseItem(2003)) { Items.UseItem(2003); }
+                if (Items.CanUseItem(2003) && !IsBuffActive(PotionType.Health)) { Items.UseItem(2003); }
             }
             // -----------------------------------------------
             // -----------------------------------------------
+
+            // Find Minions we can kill with E for Drawings
+            try
+            {
+                killableMinionsE = (from minion in ObjectManager.Get<Obj_AI_Minion>()
+                                    where minion.IsValid && minion.IsVisible && minion.IsEnemy && !minion.IsDead
+                                     where Vector3.Distance(ObjectManager.Player.Position, minion.Position) <= MaxMinionDistance
+                                    where minion.Health <= Player.GetSpellDamage(minion, SpellSlot.E)-5
+                                    select minion).ToList();
+                killableMinionsQ = (from minion in ObjectManager.Get<Obj_AI_Minion>()
+                                    where minion.IsValid && minion.IsVisible && minion.IsEnemy && !minion.IsDead
+                                    where Vector3.Distance(ObjectManager.Player.Position, minion.Position) <= MaxMinionDistance
+                                    where minion.Health <= (Player.GetSpellDamage(minion, SpellSlot.Q)/3)
+                                    select minion).ToList();
+                killableMinionsAA = (from minion in ObjectManager.Get<Obj_AI_Minion>()
+                                    where minion.IsValid && minion.IsVisible && minion.IsEnemy && !minion.IsDead
+                                    where Vector3.Distance(ObjectManager.Player.Position, minion.Position) <= MaxMinionDistance
+                                     where minion.Health <= Player.GetAutoAttackDamage(minion)
+                                    select minion).ToList();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex.ToString());
+            }
+
+
 
             // Run the correct function for whichever button is held down
             if (Config.Item("ComboActive").GetValue<KeyBind>().Active)
@@ -495,6 +662,36 @@ namespace Mordekaiser
 
             if (useE && eTarget != null)
                 E.Cast(eTarget.Position);
+
+            if (useE && E.IsReady())
+            {
+
+                foreach (Obj_AI_Minion minion in killableMinionsE)
+                {
+                    var minionX = minion.Position.X;
+                    var minionY = minion.Position.Y;
+                    killableMinionsEvector.Add(new Vector2(minionX, minionY));
+
+                }
+
+
+                var vectorstring = "";
+                foreach (Vector2 minion in killableMinionsEvector)
+                {
+                    vectorstring += ("M:"+minion.X+","+minion.Y+"-");
+                }
+                Game.PrintChat(vectorstring);
+
+                var minionsE = E.GetCircularFarmLocation(killableMinionsEvector, 400);
+                if (minionsE.MinionsHit>0)
+                    Game.PrintChat("Killable Minions:" + minionsE.MinionsHit.ToString());
+                if (minionsE.MinionsHit <= 2 || !E.InRange(minionsE.Position.To3D()))
+                    return;
+                E.Cast(minionsE.Position);
+                killableMinionsEvector.Clear();
+            }
+            killableMinionsEvector.Clear();
+
         }
 
 
@@ -507,19 +704,6 @@ namespace Mordekaiser
             var useW = Config.Item("LaneClearUseW").GetValue<bool>();
             var useE = Config.Item("LaneClearUseE").GetValue<bool>();
 
-            if (useQ && Q.IsReady())
-            {
-                var minionsQ = MinionManager.GetMinions(Player.ServerPosition,
-                    Orbwalking.GetRealAutoAttackRange(ObjectManager.Player), MinionTypes.All, MinionTeam.NotAlly);
-                foreach (var vMinion in from vMinion in minionsQ
-                                        let vMinionEDamage = Player.GetSpellDamage(vMinion, SpellSlot.Q)
-                                        //where vMinion.Health <= vMinionEDamage && vMinion.Health > Player.GetAutoAttackDamage(vMinion)
-                                        select vMinion)
-                {
-                    Q.Cast(vMinion);
-                }
-            }
-
             if (useW && W.IsReady())
             {
                 var rangedMinionsW = MinionManager.GetMinions(ObjectManager.Player.ServerPosition, W.Range);
@@ -529,14 +713,7 @@ namespace Mordekaiser
                 W.CastOnUnit(Player);
             }
 
-            if (useE && E.IsReady())
-            {
-                var rangedMinionsE = MinionManager.GetMinions(ObjectManager.Player.ServerPosition, E.Range);
-                var minionsE = E.GetCircularFarmLocation(rangedMinionsE, E.Range);
-                if (minionsE.MinionsHit <= 3 || !E.InRange(minionsE.Position.To3D()))
-                    return;
-                E.Cast(minionsE.Position);
-            }
+            
         }
 
 
@@ -617,10 +794,10 @@ namespace Mordekaiser
 
         private static void WelcomeMessage()
         {
-            Game.PrintChat(String.Format("-----------------------------------"));
+            Game.PrintChat(String.Format("------------------------------------------------"));
             Game.PrintChat(String.Format("Faiolas Custom Mordekaiser Loaded!!"));
-            Game.PrintChat(String.Format("----------Version: 0.101!!----------"));
-            Game.PrintChat(String.Format("-----------------------------------"));
+            Game.PrintChat(String.Format("--------------Version: 1.014----------------"));
+            Game.PrintChat(String.Format("------------------------------------------------"));
         }
     }
 }
