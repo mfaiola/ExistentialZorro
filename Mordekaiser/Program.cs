@@ -254,13 +254,15 @@ namespace Mordekaiser
                 LaneClear();
             else if (Config.Item("JungleFarmActive").GetValue<KeyBind>().Active)
                 JungleFarm();
-
-            // Auto Slave Control
-            var rGhostArea = SimpleTs.GetTarget(2200f, SimpleTs.DamageType.Magical);
-            if (MordekaiserHaveSlave && rGhostArea != null && Environment.TickCount >= SlaveDelay)
+            else
             {
-                R.Cast(rGhostArea);
-                SlaveDelay = Environment.TickCount + 1000;
+                // Auto Slave Control
+                var rGhostArea = SimpleTs.GetTarget(2000f, SimpleTs.DamageType.Magical);
+                if (MordekaiserHaveSlave && rGhostArea != null && Environment.TickCount >= SlaveDelay)
+                {
+                    R.Cast(rGhostArea);
+                    SlaveDelay = Environment.TickCount + 1000;
+                }
             }
 
         }
@@ -424,20 +426,47 @@ namespace Mordekaiser
                 {
                     Q.Cast();
                     Player.IssueOrder(GameObjectOrder.AttackUnit, wTarget);
+                    // Auto Slave Control
+                    if (MordekaiserHaveSlave)
+                    {
+                        R.Cast(wTarget);
+                        SlaveDelay = Environment.TickCount + 1500;
+                    }
                 }
                 // Turn movement via orbwalker since we are done with combos
                 Orbwalker.SetMovement(true);
             }
             // ----------------------------------------------------------------------------------------
 
+            // Re-check for targets before final dps alternatives
+            wTarget = SimpleTs.GetTarget(W.Range / 2, SimpleTs.DamageType.Magical);
+            eTarget = SimpleTs.GetTarget(E.Range, SimpleTs.DamageType.Magical);
+
             // -----------------------------------------------
             // Couldn't combo anyone so we just use E for dps
             if (useE && eTarget != null)
+            {
                 E.Cast(eTarget.Position);
+                // Auto Slave Control
+                if (MordekaiserHaveSlave)
+                {
+                    R.Cast(eTarget);
+                    SlaveDelay = Environment.TickCount + 1500;
+                }
+            }
+
 
             // Use W is we have an enemy player in metal shard range
             if (useW && wTarget != null && Player.Distance(wTarget) < WDamageRange)
+            {
                 W.CastOnUnit(Player);
+                // Auto Slave Control
+                if (MordekaiserHaveSlave)
+                {
+                    R.Cast(wTarget);
+                    SlaveDelay = Environment.TickCount + 1500;
+                }
+            }
 
             // Turn on autoattack via orbwalker since we are done casting spells
             Orbwalker.SetAttack(true);
@@ -590,6 +619,7 @@ namespace Mordekaiser
         {
             Game.PrintChat(String.Format("-----------------------------------"));
             Game.PrintChat(String.Format("Faiolas Custom Mordekaiser Loaded!!"));
+            Game.PrintChat(String.Format("----------Version: 0.101!!----------"));
             Game.PrintChat(String.Format("-----------------------------------"));
         }
     }
